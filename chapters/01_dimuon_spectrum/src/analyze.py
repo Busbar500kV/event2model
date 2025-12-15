@@ -5,27 +5,22 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+import matplotlib
+matplotlib.use("Agg")  # headless-safe (no display needed)
 import matplotlib.pyplot as plt
 
 
 def invariant_mass(E, px, py, pz):
-    """
-    Compute invariant mass from two-particle four-vectors.
-    Inputs are arrays of shape (N, 2).
-    """
     E_sum = E.sum(axis=1)
     px_sum = px.sum(axis=1)
     py_sum = py.sum(axis=1)
     pz_sum = pz.sum(axis=1)
-
     m2 = E_sum**2 - px_sum**2 - py_sum**2 - pz_sum**2
     return np.sqrt(np.maximum(m2, 0.0))
 
 
 def find_csv_file(data_dir: Path) -> Path:
-    """
-    Locate a CSV file in data_dir or its immediate subdirectories.
-    """
     if not data_dir.exists():
         raise FileNotFoundError(f"Data directory does not exist: {data_dir}")
 
@@ -36,10 +31,8 @@ def find_csv_file(data_dir: Path) -> Path:
     if not csv_files:
         found = [str(p.relative_to(data_dir)) for p in data_dir.rglob("*")]
         raise FileNotFoundError(
-            f"No CSV files found in {data_dir}.\n"
-            f"Files present:\n" + "\n".join(found[:50])
+            f"No CSV files found in {data_dir}.\nFiles present:\n" + "\n".join(found[:50])
         )
-
     return sorted(csv_files)[0]
 
 
@@ -128,14 +121,10 @@ def run_analysis(cfg):
     df = load_table_robust(csv_file)
     df = df.dropna(axis=1, how="all")
 
-    required_cols = ["E1", "px1", "py1", "pz1",
-                     "E2", "px2", "py2", "pz2", "M"]
+    required_cols = ["E1", "px1", "py1", "pz1", "E2", "px2", "py2", "pz2", "M"]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
-        raise ValueError(
-            f"Missing required columns: {missing}\n"
-            f"Columns found: {list(df.columns)}"
-        )
+        raise ValueError(f"Missing required columns: {missing}\nColumns found: {list(df.columns)}")
 
     for c in required_cols:
         df[c] = pd.to_numeric(df[c], errors="coerce")
@@ -160,21 +149,11 @@ def run_analysis(cfg):
     mass_range = cfg["plots"]["mass_range"]
     bins = cfg["plots"]["bins"]
 
-    # Main spectra
-    _plot_hist(
-        m_calc, bins, mass_range,
-        fig_dir / "mass_spectrum.png",
-        "Dimuon Invariant Mass Spectrum",
-        log=False
-    )
-    _plot_hist(
-        m_calc, bins, mass_range,
-        fig_dir / "mass_spectrum_log.png",
-        "Dimuon Invariant Mass Spectrum (log scale)",
-        log=True
-    )
+    _plot_hist(m_calc, bins, mass_range, fig_dir / "mass_spectrum.png",
+               "Dimuon Invariant Mass Spectrum", log=False)
+    _plot_hist(m_calc, bins, mass_range, fig_dir / "mass_spectrum_log.png",
+               "Dimuon Invariant Mass Spectrum (log scale)", log=True)
 
-    # Residuals
     plt.figure(figsize=(8, 5))
     plt.hist(residuals, bins=200, histtype="step")
     plt.xlabel("M_calc − M_given [GeV]")
@@ -184,28 +163,12 @@ def run_analysis(cfg):
     plt.savefig(fig_dir / "mass_residuals.png")
     plt.close()
 
-    # Zoom windows (simple + impactful)
-    _plot_zoom(
-        m_calc, (2.8, 3.4),
-        fig_dir / "mass_zoom_jpsi.png",
-        "Zoom: J/ψ region (2.8–3.4 GeV)",
-        bins=120,
-        log=False
-    )
-    _plot_zoom(
-        m_calc, (9.0, 11.0),
-        fig_dir / "mass_zoom_upsilon.png",
-        "Zoom: ϒ region (9–11 GeV)",
-        bins=120,
-        log=False
-    )
-    _plot_zoom(
-        m_calc, (80.0, 100.0),
-        fig_dir / "mass_zoom_z.png",
-        "Zoom: Z region (80–100 GeV)",
-        bins=120,
-        log=False
-    )
+    _plot_zoom(m_calc, (2.8, 3.4), fig_dir / "mass_zoom_jpsi.png",
+               "Zoom: J/ψ region (2.8–3.4 GeV)")
+    _plot_zoom(m_calc, (9.0, 11.0), fig_dir / "mass_zoom_upsilon.png",
+               "Zoom: ϒ region (9–11 GeV)")
+    _plot_zoom(m_calc, (80.0, 100.0), fig_dir / "mass_zoom_z.png",
+               "Zoom: Z region (80–100 GeV)")
 
     metrics = {
         "events": int(len(df)),
@@ -214,11 +177,6 @@ def run_analysis(cfg):
         "csv_file": str(csv_file),
         "min_mass_calc": float(np.min(m_calc)),
         "max_mass_calc": float(np.max(m_calc)),
-        "zoom_windows": {
-            "jpsi": [2.8, 3.4],
-            "upsilon": [9.0, 11.0],
-            "z": [80.0, 100.0],
-        },
     }
 
     out_dir.mkdir(parents=True, exist_ok=True)
