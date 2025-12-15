@@ -17,5 +17,5 @@ pushd "${DATA_DIR}" > /dev/null
 cernopendata-client download-files --recid "${RECID}"
 popd > /dev/null
 
-echo "Done. Listing CSV files:"
-ls -lh "${DATA_DIR}"/*.csv 2>/dev/null || echo "No CSV files found yet in ${DATA_DIR}"
+echo "Done. Listing CSV files (recursive):"
+find "${DATA_DIR}" -maxdepth 3 -name "*.csv" -print || true
