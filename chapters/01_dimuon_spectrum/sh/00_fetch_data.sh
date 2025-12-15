@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RECID=5201
 DATA_DIR="data_cache/01_dimuon_spectrum"
+CSV_PATH="${DATA_DIR}/Dimuon_DoubleMu.csv"
+URL="http://cern.ch/opendata/record/545/files/Dimuon_DoubleMu.csv"
 
 mkdir -p "${DATA_DIR}"
 
-if ! command -v cernopendata-client &> /dev/null; then
-  pip install cernopendata-client
-fi
+echo "Downloading Dimuon_DoubleMu.csv into ${CSV_PATH}"
+curl -L --fail -o "${CSV_PATH}.tmp" "${URL}"
+mv "${CSV_PATH}.tmp" "${CSV_PATH}"
 
-echo "Downloading CERN Open Data record ${RECID} into ${DATA_DIR}"
+echo "Validating header..."
+head -n 1 "${CSV_PATH}" | grep -q "Run,Event" || {
+  echo "ERROR: Downloaded file does not look like the expected CSV."
+  echo "First 5 lines:"
+  head -n 5 "${CSV_PATH}"
+  exit 1
+}
 
-# cernopendata-client writes into the current working directory in some versions
-pushd "${DATA_DIR}" > /dev/null
-cernopendata-client download-files --recid "${RECID}"
-popd > /dev/null
-
-echo "Done. Listing CSV files (recursive):"
-find "${DATA_DIR}" -maxdepth 3 -name "*.csv" -print || true
+echo "Done."
+ls -lh "${CSV_PATH}"
