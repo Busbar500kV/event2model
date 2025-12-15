@@ -4,19 +4,5 @@
   "residual_rms": 0.0040357430199591034,
   "csv_file": "data_cache/01_dimuon_spectrum/Dimuon_DoubleMu.csv",
   "min_mass_calc": 0.0,
-  "max_mass_calc": 299.20197508836736,
-  "zoom_windows": {
-    "jpsi": [
-      2.8,
-      3.4
-    ],
-    "upsilon": [
-      9.0,
-      11.0
-    ],
-    "z": [
-      80.0,
-      100.0
-    ]
-  }
+  "max_mass_calc": 299.20197508836736
 }
