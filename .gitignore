@@ -10,7 +10,8 @@ data_cache/
 # =========================
 # Generated outputs
 # =========================
-**/out/figures/
+
+# Do NOT commit videos (too big for normal git)
 **/out/video/
 
 # Ignore generated json by default...
@@ -18,6 +19,10 @@ data_cache/
 # ...but keep metrics.json (small + useful) and results.md (human-readable)
 !**/out/metrics.json
 !**/out/results.md
+
+# Allow committing PNG plots (small + important for chapters)
+!**/out/figures/
+!**/out/figures/*.png
 
 # =========================
 # Python artifacts
