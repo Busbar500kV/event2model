@@ -1,0 +1,54 @@
+# =========================
+# Data (never commit raw data)
+# =========================
+data_cache/
+**/data_cache/
+**/data/
+**/*.csv
+**/*.root
+
+# =========================
+# Generated outputs
+# =========================
+**/out/figures/
+**/out/video/
+**/out/*.json
+# keep results.md if you want it versioned
+!**/out/results.md
+
+# =========================
+# Python artifacts
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.pytest_cache/
+
+# =========================
+# Virtual environments
+# =========================
+.venv/
+venv/
+env/
+
+# =========================
+# OS / editor noise
+# =========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# =========================
+# Logs & temp
+# =========================
+*.log
+*.tmp
+
+# =========================
+# Jupyter (if used later)
+# =========================
+.ipynb_checkpoints/
