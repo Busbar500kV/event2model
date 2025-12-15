@@ -1,6 +1,6 @@
 # Chapter 1 — Dimuon Invariant Mass
 
-_Generated on 2025-12-15T04:35:59.159340 UTC_
+_Generated on 2025-12-15T04:47:26.772088 UTC_
 
 ## Summary
 
@@ -12,6 +12,9 @@ _Generated on 2025-12-15T04:35:59.159340 UTC_
 ![mass_spectrum.png](figures/mass_spectrum.png)
 ![mass_spectrum_log.png](figures/mass_spectrum_log.png)
 ![mass_residuals.png](figures/mass_residuals.png)
+![mass_zoom_jpsi.png](figures/mass_zoom_jpsi.png)
+![mass_zoom_upsilon.png](figures/mass_zoom_upsilon.png)
+![mass_zoom_z.png](figures/mass_zoom_z.png)
 
 ## Interpretation
 
