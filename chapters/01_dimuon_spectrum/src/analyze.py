@@ -44,17 +44,11 @@ def find_csv_file(data_dir: Path) -> Path:
 
 
 def _sniff_delimiter(sample_text: str) -> str:
-    """
-    Sniff delimiter from a sample. Fall back to comma.
-    """
     candidates = [",", ";", "\t", "|"]
-    # Quick heuristic first
     counts = {c: sample_text.count(c) for c in candidates}
     best = max(counts, key=counts.get)
     if counts[best] > 0:
         return best
-
-    # csv.Sniffer fallback
     try:
         dialect = csv.Sniffer().sniff(sample_text, delimiters="".join(candidates))
         return dialect.delimiter
@@ -63,88 +57,79 @@ def _sniff_delimiter(sample_text: str) -> str:
 
 
 def _detect_header_line(lines: list[str]) -> int:
-    """
-    Find the most likely header line index.
-    We prefer a line that contains the required column names.
-    Otherwise we choose the first line that looks "table-like" (has delimiters).
-    """
     required = ["E1", "px1", "py1", "pz1", "E2", "px2", "py2", "pz2", "M"]
-
-    # First pass: line contains multiple required tokens
     for i, ln in enumerate(lines):
         hit = sum(1 for k in required if k in ln)
-        if hit >= 5:  # strong signal: at least 5 required columns named
+        if hit >= 5:
             return i
-
-    # Second pass: line looks like delimited header (has letters + delimiter)
     for i, ln in enumerate(lines):
         if any(d in ln for d in [",", ";", "\t", "|"]) and re.search(r"[A-Za-z]", ln):
             return i
-
-    # Fallback: assume first line is header
     return 0
 
 
 def load_table_robust(csv_path: Path) -> pd.DataFrame:
-    """
-    Robust loader for CERN Open Data 'CSV' files that may include:
-    - metadata lines before header
-    - non-comma delimiters
-    - quoting oddities that break pandas C-engine
-    """
-    # Read a small chunk of lines to detect header + delimiter
     with open(csv_path, "r", errors="replace") as f:
-        first_lines = [next(f) for _ in range(80)]  # may raise StopIteration for tiny files
-    # If file shorter than 80 lines
+        first_lines = []
+        for _ in range(80):
+            try:
+                first_lines.append(next(f))
+            except StopIteration:
+                break
     first_lines = [ln.rstrip("\n") for ln in first_lines if ln is not None]
 
     header_idx = _detect_header_line(first_lines)
     sample_for_sniff = "\n".join(first_lines[header_idx:header_idx + 20])
     delim = _sniff_delimiter(sample_for_sniff)
 
-    # Try robust pandas read
-    try:
-        df = pd.read_csv(
-            csv_path,
-            sep=delim,
-            header=0,
-            skiprows=header_idx,
-            engine="python",         # robust against irregular quoting
-            on_bad_lines="skip",     # skip any garbage lines
-        )
-    except Exception as e:
-        raise RuntimeError(
-            f"Failed to parse {csv_path} with delimiter '{delim}' and header at line {header_idx}.\n"
-            f"Original error: {e}"
-        )
-
-    # Strip whitespace from column names
+    df = pd.read_csv(
+        csv_path,
+        sep=delim,
+        header=0,
+        skiprows=header_idx,
+        engine="python",
+        on_bad_lines="skip",
+    )
     df.columns = [c.strip() for c in df.columns]
-
     return df
+
+
+def _plot_hist(masses, bins, xlim, outpath, title, log=False):
+    plt.figure(figsize=(8, 5))
+    plt.hist(masses, bins=bins, range=xlim, histtype="step", log=log)
+    plt.xlabel("Invariant Mass [GeV]")
+    plt.ylabel("Events" + (" (log)" if log else ""))
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(outpath)
+    plt.close()
+
+
+def _plot_zoom(masses, xlim, outpath, title, bins=120, log=False):
+    plt.figure(figsize=(8, 5))
+    plt.hist(masses, bins=bins, range=xlim, histtype="step", log=log)
+    plt.xlabel("Invariant Mass [GeV]")
+    plt.ylabel("Events" + (" (log)" if log else ""))
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(outpath)
+    plt.close()
 
 
 def run_analysis(cfg):
     data_dir = Path(cfg["paths"]["data_dir"])
     out_dir = Path(cfg["paths"]["out_dir"])
     fig_dir = out_dir / "figures"
-
     fig_dir.mkdir(parents=True, exist_ok=True)
 
-    # --------------------------------------------------
-    # Load data
-    # --------------------------------------------------
     csv_file = find_csv_file(data_dir)
     print(f"Loading data from: {csv_file}")
 
     df = load_table_robust(csv_file)
-
-    # Some files may include unnamed columns or empties; drop fully-empty columns
     df = df.dropna(axis=1, how="all")
 
     required_cols = ["E1", "px1", "py1", "pz1",
                      "E2", "px2", "py2", "pz2", "M"]
-
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         raise ValueError(
@@ -152,20 +137,17 @@ def run_analysis(cfg):
             f"Columns found: {list(df.columns)}"
         )
 
-    # Ensure numeric (coerce non-numeric to NaN, then drop)
     for c in required_cols:
         df[c] = pd.to_numeric(df[c], errors="coerce")
+
     before = len(df)
     df = df.dropna(subset=required_cols)
     after = len(df)
     if after == 0:
-        raise ValueError("After numeric coercion, no valid rows remained. Check the CSV formatting.")
+        raise ValueError("After numeric coercion, no valid rows remained.")
     if after < before:
         print(f"Dropped {before - after} rows due to non-numeric/NaN required fields.")
 
-    # --------------------------------------------------
-    # Reconstruct invariant mass
-    # --------------------------------------------------
     E = df[["E1", "E2"]].values
     px = df[["px1", "px2"]].values
     py = df[["py1", "py2"]].values
@@ -175,31 +157,22 @@ def run_analysis(cfg):
     m_given = df["M"].values
     residuals = m_calc - m_given
 
-    # --------------------------------------------------
-    # Plots
-    # --------------------------------------------------
     mass_range = cfg["plots"]["mass_range"]
     bins = cfg["plots"]["bins"]
 
-    # Spectrum (linear)
-    plt.figure(figsize=(8, 5))
-    plt.hist(m_calc, bins=bins, range=mass_range, histtype="step")
-    plt.xlabel("Invariant Mass [GeV]")
-    plt.ylabel("Events")
-    plt.title("Dimuon Invariant Mass Spectrum")
-    plt.tight_layout()
-    plt.savefig(fig_dir / "mass_spectrum.png")
-    plt.close()
-
-    # Spectrum (log)
-    plt.figure(figsize=(8, 5))
-    plt.hist(m_calc, bins=bins, range=mass_range, histtype="step", log=True)
-    plt.xlabel("Invariant Mass [GeV]")
-    plt.ylabel("Events (log)")
-    plt.title("Dimuon Invariant Mass Spectrum (log scale)")
-    plt.tight_layout()
-    plt.savefig(fig_dir / "mass_spectrum_log.png")
-    plt.close()
+    # Main spectra
+    _plot_hist(
+        m_calc, bins, mass_range,
+        fig_dir / "mass_spectrum.png",
+        "Dimuon Invariant Mass Spectrum",
+        log=False
+    )
+    _plot_hist(
+        m_calc, bins, mass_range,
+        fig_dir / "mass_spectrum_log.png",
+        "Dimuon Invariant Mass Spectrum (log scale)",
+        log=True
+    )
 
     # Residuals
     plt.figure(figsize=(8, 5))
@@ -211,9 +184,29 @@ def run_analysis(cfg):
     plt.savefig(fig_dir / "mass_residuals.png")
     plt.close()
 
-    # --------------------------------------------------
-    # Metrics
-    # --------------------------------------------------
+    # Zoom windows (simple + impactful)
+    _plot_zoom(
+        m_calc, (2.8, 3.4),
+        fig_dir / "mass_zoom_jpsi.png",
+        "Zoom: J/ψ region (2.8–3.4 GeV)",
+        bins=120,
+        log=False
+    )
+    _plot_zoom(
+        m_calc, (9.0, 11.0),
+        fig_dir / "mass_zoom_upsilon.png",
+        "Zoom: ϒ region (9–11 GeV)",
+        bins=120,
+        log=False
+    )
+    _plot_zoom(
+        m_calc, (80.0, 100.0),
+        fig_dir / "mass_zoom_z.png",
+        "Zoom: Z region (80–100 GeV)",
+        bins=120,
+        log=False
+    )
+
     metrics = {
         "events": int(len(df)),
         "residual_mean": float(np.mean(residuals)),
@@ -221,6 +214,11 @@ def run_analysis(cfg):
         "csv_file": str(csv_file),
         "min_mass_calc": float(np.min(m_calc)),
         "max_mass_calc": float(np.max(m_calc)),
+        "zoom_windows": {
+            "jpsi": [2.8, 3.4],
+            "upsilon": [9.0, 11.0],
+            "z": [80.0, 100.0],
+        },
     }
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -233,5 +231,8 @@ def run_analysis(cfg):
             "mass_spectrum.png",
             "mass_spectrum_log.png",
             "mass_residuals.png",
+            "mass_zoom_jpsi.png",
+            "mass_zoom_upsilon.png",
+            "mass_zoom_z.png",
         ],
     }
