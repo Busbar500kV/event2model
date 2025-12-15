@@ -3,7 +3,7 @@ chapter_id: 01_dimuon_spectrum
 dataset:
   recid: 5201
   description: CMS 2011A DoubleMu dimuon events
-  filename: Dimuon_DoubleMu_Run2011A.csv
+  filename: Dimuon_DoubleMu.csv
 
 paths:
   data_dir: data_cache/01_dimuon_spectrum
