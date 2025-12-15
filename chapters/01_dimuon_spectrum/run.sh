@@ -3,7 +3,6 @@ set -euo pipefail
 
 echo "=== Chapter 1: Dimuon invariant mass ==="
 
-# Always run from repo root
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "${REPO_ROOT}"
 
@@ -13,7 +12,9 @@ git pull
 echo "[2/5] Activating virtual environment..."
 if [ ! -d ".venv" ]; then
   echo "ERROR: .venv not found. Create it once with:"
-  echo "  python3 -m venv .venv && source .venv/bin/activate && pip install numpy pandas matplotlib pyyaml"
+  echo "  python3 -m venv .venv"
+  echo "  source .venv/bin/activate"
+  echo "  pip install numpy pandas matplotlib pyyaml"
   exit 1
 fi
 source .venv/bin/activate
@@ -37,7 +38,7 @@ python chapters/01_dimuon_spectrum/src/run.py \
   --config chapters/01_dimuon_spectrum/config.yaml
 
 echo "[5/5] Publishing results..."
-git add chapters/01_dimuon_spectrum/out/results.md
+git add chapters/01_dimuon_spectrum/out/results.md chapters/01_dimuon_spectrum/out/metrics.json
 git commit -m "Chapter 1: dimuon invariant mass results" || echo "No changes to commit"
 git push
 
