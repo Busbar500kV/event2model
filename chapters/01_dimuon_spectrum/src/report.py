@@ -1,28 +1,44 @@
 from pathlib import Path
 from datetime import datetime
 
+
 def write_report(cfg, results):
     out_dir = Path(cfg["paths"]["out_dir"])
-    fig_dir = out_dir / "figures"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    metrics = results.get("metrics", {})
+    figures = results.get("figures", [])
+
+    ts = datetime.utcnow().isoformat() + " UTC"
 
     lines = []
-    lines.append(f"# Chapter 1 — Dimuon Invariant Mass\n")
-    lines.append(f"_Generated on {datetime.utcnow().isoformat()} UTC_\n")
+    lines.append("# Chapter 1 — Dimuon Invariant Mass")
+    lines.append("")
+    lines.append(f"_Generated on {ts}_")
+    lines.append("")
+    lines.append("## Summary")
+    lines.append("")
+    lines.append(f"- Events analyzed: **{metrics.get('events', 'N/A')}**")
+    rms = metrics.get("residual_rms", None)
+    if isinstance(rms, (int, float)):
+        lines.append(f"- Residual RMS: **{rms:.3e} GeV**")
+    else:
+        lines.append(f"- Residual RMS: **{rms}**")
+    lines.append("")
 
-    lines.append("## Summary\n")
-    lines.append(f"- Events analyzed: **{results['metrics']['events']}**")
-    lines.append(f"- Residual RMS: **{results['metrics']['residual_rms']:.3e} GeV**\n")
-
-    lines.append("## Figures\n")
-    for fig in results["figures"]:
+    lines.append("## Figures")
+    lines.append("")
+    for fig in figures:
         lines.append(f"![{fig}](figures/{fig})")
+    lines.append("")
 
-    lines.append("\n## Interpretation\n")
+    lines.append("## Interpretation")
+    lines.append("")
     lines.append(
         "Resonant structure appears only after aggregating many events. "
         "Invariant mass is not an event-level property but a statistical construct "
         "derived from Lorentz-invariant constraints."
     )
+    lines.append("")  # final newline
 
-    with open(out_dir / "results.md", "w") as f:
-        f.write("\n".join(lines))
+    (out_dir / "results.md").write_text("\n".join(lines), encoding="utf-8")
