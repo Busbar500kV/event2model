@@ -12,8 +12,11 @@ data_cache/
 # =========================
 **/out/figures/
 **/out/video/
+
+# Ignore generated json by default...
 **/out/*.json
-# keep results.md if you want it versioned
+# ...but keep metrics.json (small + useful) and results.md (human-readable)
+!**/out/metrics.json
 !**/out/results.md
 
 # =========================
@@ -49,6 +52,6 @@ Thumbs.db
 *.tmp
 
 # =========================
-# Jupyter (if used later)
+# Jupyter
 # =========================
 .ipynb_checkpoints/
