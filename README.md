@@ -34,7 +34,7 @@ The code is the argument.
 ### Chapter 1  
 **Dimuon Invariant Mass**
 
-This chapter demonstrates how particle like structures emerge only after aggregating many independent detector events. Individual collisions contain only muon tracks. Resonances such as J psi, Upsilon, and Z appear exclusively as stable statistical structures in invariant mass space.
+This chapter demonstrates how particle like structures emerge only after aggregating many independent detector events. Individual collisions contain only muon tracks. Resonances such as J/ψ vs ϒ and Z appear exclusively as stable statistical structures in invariant mass space.
 
 The chapter also establishes the role of mass as a global constraint linking energy and momentum, rather than as a substance or excitation level.
 
